@@ -93,7 +93,10 @@ class Perf::Version
   def patch_gemfile
     gemfile = File.read('Gemfile').lines.reject { |l| l =~ /gem .rails_parallel.,/ }
     gemfile.each do |line|
-      line.sub!('d8c4f61', '202bdfc')
+      if line =~ /^gem .activemerchant.,/
+        line.sub!('d8c4f61', '202bdfc')
+        line.sub!('Soleone', 'Shopify') if line =~ /:tag => /
+      end
     end
     gemfile << 'gem "rails_parallel", "0.1.3", :path => "/home/wisq/parallel/rails_parallel", :require => false'
     File.open('Gemfile', 'w') { |fh| fh.puts(*gemfile) }
@@ -124,6 +127,22 @@ class Perf::Version
     migration = File.read(file)
     migration.sub!(', :options => "ENGINE=Archive"', '')
     File.open(file, 'w') { |fh| fh.puts migration }
+  end
+
+  def patch_plugins
+    patch_ripn
+  end
+
+  def patch_ripn
+    file = 'vendor/plugins/request_in_process_name/init.rb'
+    init = File.read(file).lines.map do |line|
+      line.chomp!
+      if line.include?(':include, RequestInProcessName')
+        line += " unless Rails.env.test? && $0.start_with?('rails_parallel')"
+      end
+      line
+    end
+    File.open(file, 'w') { |fh| fh.puts init }
   end
 
   def get_timings_report_keys
