@@ -2,13 +2,14 @@ require 'perf'
 require 'fileutils'
 
 class Perf::Version
+  include Perf::Config
+
   attr_reader :sha
 
   SPEC_REPORT = 'tmp/spec_report.yml'
 
-  def initialize(sha, redis = Redis.new, tree = nil)
+  def initialize(sha, redis = Redis.new)
     @redis = redis
-    @tree  = tree
     @sha   = sha
   end
 
@@ -67,25 +68,26 @@ class Perf::Version
   end
 
   def run
-    raise 'No tree' unless @tree && @tree.exist?
+    Dir.chdir(WORK_TREE) do
+      sh %w{git reset --hard}
+      sh %w{git clean -f -d -e tmp}
+      sh 'git', 'checkout', @sha
+      patch_gemfile
+      patch_rakefile
+      patch_user_logins
+      patch_plugins
 
-    sh %w{git reset --hard}
-    sh %w{git clean -f -d -e tmp}
-    sh 'git', 'checkout', @sha
-    patch_gemfile
-    patch_rakefile
-    patch_user_logins
+      sh 'rsync', '-rt', COPY_TREE + '/', './'
 
-    sh 'rsync', '-rt', @tree.to_s + '/', './'
+      File.unlink(SPEC_REPORT) if File.exist?(SPEC_REPORT)
+      delete_timings_reports
 
-    File.unlink(SPEC_REPORT) if File.exist?(SPEC_REPORT)
-    delete_timings_reports
+      sh %w{bundle check} rescue sh %w{bundle install}
+      sh %w{bundle exec rake --trace spec:report}
 
-    sh %w{bundle check} rescue sh %w{bundle install}
-    sh %w{bundle exec rake --trace spec:report}
-
-    process_spec_report(YAML.load_file(SPEC_REPORT))
-    process_timings_report
+      process_spec_report(YAML.load_file(SPEC_REPORT))
+      process_timings_report
+    end
   end
 
   def patch_gemfile

@@ -2,14 +2,14 @@ require 'perf'
 require 'perf/version'
 
 class Perf::Bisect
+  include Perf::Config
+
   attr_reader :versions
 
   def initialize
     @redis = Redis.new
 
     file = Pathname.new(__FILE__)
-    @tree_path = (file.dirname + '../../tree').realpath
-    @work_path = Pathname.new('../work').realpath
   end
 
   def shell_lines(*cmd)
@@ -28,17 +28,17 @@ class Perf::Bisect
   end
 
   def get_versions(first, last)
-    Dir.chdir(@work_path.to_s) do
+    Dir.chdir(WORK_PATH) do
       @versions = shell_lines(
         'git', 'log', '--format=%H', "#{first}^..#{last}"
       ).reverse.map do |sha|
-        Perf::Version.new(sha.chomp, @redis, @tree_path)
+        Perf::Version.new(sha.chomp, @redis)
       end
     end
   end
 
   def run(first, last)
-    Dir.chdir(@work_path.to_s)
+    Dir.chdir(WORK_PATH)
     get_versions(first, last)
 
     [@versions.first, @versions.last].each { |v| v.run unless v.complete? }
