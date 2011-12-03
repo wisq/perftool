@@ -67,6 +67,8 @@ class Perf::Version
   end
 
   def run
+    raise 'No tree' unless @tree && @tree.exist?
+
     sh %w{git reset --hard}
     sh %w{git clean -f -d -e tmp}
     sh 'git', 'checkout', @sha

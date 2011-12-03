@@ -32,7 +32,7 @@ class Perf::Bisect
       @versions = shell_lines(
         'git', 'log', '--format=%H', "#{first}^..#{last}"
       ).reverse.map do |sha|
-        Perf::Version.new(sha.chomp, @redis, @tree)
+        Perf::Version.new(sha.chomp, @redis, @tree_path)
       end
     end
   end
