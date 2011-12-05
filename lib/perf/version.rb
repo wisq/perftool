@@ -22,13 +22,18 @@ class Perf::Version
     @redis.set(spec_report_key, report.to_yaml)
   end
 
-  def process_timings_report
-    @timings_report = get_timings_report_keys.inject({}) do |report, key|
+  def process_timings_report(report)
+    @timings_report = report
+    @redis.set(timings_report_key, report.to_yaml)
+  end
+
+  def merge_timings_reports
+    report = get_timings_report_keys.inject({}) do |report, key|
       part = YAML.load(@redis.get(key))
       report.deep_merge(part)
     end
-    raise 'No timings report' if @timings_report.empty?
-    @redis.set(timings_report_key, @timings_report.to_yaml)
+    raise 'No timings report' if report.empty?
+    report
   end
 
   def total_runtime
@@ -93,7 +98,7 @@ class Perf::Version
       sh %w{bundle exec rake --trace spec:report}
 
       process_spec_report(YAML.load_file(SPEC_REPORT))
-      process_timings_report
+      process_timings_report(merge_timings_reports)
     end
   end
 
