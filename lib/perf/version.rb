@@ -38,25 +38,27 @@ class Perf::Version
   end
 
   def spec_report
-    @spec_report || get_spec_report
+    @spec_report ||= get_spec_report
   end
 
   def timings_report
-    @timings_report || get_timings_report
+    @timings_report ||= get_timings_report
   end
 
   def complete?
-    spec_report && timings_report
+    !(spec_report.empty? || timings_report.empty?)
   end
 
   def get_spec_report
     yaml = @redis.get(spec_report_key)
-    YAML.load(yaml) unless yaml.nil?
+    return {} if yaml.nil?
+    YAML.load(yaml)
   end
 
   def get_timings_report
     yaml = @redis.get(timings_report_key)
-    YAML.load(yaml) unless yaml.nil?
+    return {} if yaml.nil?
+    YAML.load(yaml)
   end
 
   def spec_report_key
@@ -74,7 +76,7 @@ class Perf::Version
       sh 'git', 'checkout', @sha
       patch_gemfile
       patch_rakefile
-      patch_user_logins
+      patch_migrations
       patch_plugins
 
       sh 'rsync', '-rt', COPY_TREE + '/', './'
@@ -91,11 +93,24 @@ class Perf::Version
   end
 
   def patch_gemfile
-    gemfile = File.read('Gemfile').lines.reject { |l| l =~ /gem .rails_parallel.,/ }
+    gemfile = File.read('Gemfile').lines.select do |line|
+      case line
+      when /gem .rails_parallel.,/
+        false
+      when /gem .rack-perftools_profiler.,/
+        false
+      else
+        true
+      end
+    end
+
     gemfile.each do |line|
-      if line =~ /^gem .activemerchant.,/
+      case line
+      when /^gem .activemerchant.,/
         line.sub!('d8c4f61', '202bdfc')
         line.sub!('Soleone', 'Shopify') if line =~ /:tag => /
+      when /^gem .liquid.,/
+        line.sub!('b890674', '4819eb1')
       end
     end
     gemfile << 'gem "rails_parallel", "0.1.3", :path => "/home/wisq/parallel/rails_parallel", :require => false'
@@ -119,6 +134,13 @@ class Perf::Version
     end.compact.flatten
     raise 'Line not found, old Rakefile?' unless found
     File.open('Rakefile', 'w') { |fh| fh.puts(*rakefile) }
+  end
+
+  def patch_migrations
+    patch_user_logins
+    ['db/migrate/20110722185820_cyclechimp_quickify_extension_maintenance_job.rb'].each do |file|
+      File.unlink(file) if File.exist?(file)
+    end
   end
 
   def patch_user_logins
@@ -176,9 +198,16 @@ class Perf::Version
       when %r{\.rbenv/bin} then true
       when %r{\.rbenv/shims} then true
       when %r{^(/usr)?/s?bin$} then true
+      when %r{wisq/bin$} then true
       else false
       end
     end
     paths.join(':')
+  end
+
+  def reset
+    instance_variables.each do |var|
+      instance_variable_set(var, nil) unless [:@redis, :@sha].include?(var)
+    end
   end
 end

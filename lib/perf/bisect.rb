@@ -28,7 +28,7 @@ class Perf::Bisect
   end
 
   def get_versions(first, last)
-    Dir.chdir(WORK_PATH) do
+    Dir.chdir(WORK_TREE) do
       @versions = shell_lines(
         'git', 'log', '--format=%H', "#{first}^..#{last}"
       ).reverse.map do |sha|
@@ -38,13 +38,13 @@ class Perf::Bisect
   end
 
   def run(first, last)
-    Dir.chdir(WORK_PATH)
+    Dir.chdir(WORK_TREE)
     get_versions(first, last)
 
     [@versions.first, @versions.last].each { |v| v.run unless v.complete? }
 
-    while gap = biggest_gap do
-      first, second = gap
+    while next_b = next_bisect do
+      first, second = next_b
       midpoint = bisect(first, second)
       p [first.sha, second.sha]
       p [midpoint.sha]
@@ -53,19 +53,24 @@ class Perf::Bisect
     end
   end
 
-  def biggest_gap
+  def next_bisect
     complete = @versions.select(&:complete?)
 
     pairs = (1 .. complete.count - 1).map do |index|
-      [complete[index - 1], complete[index]]
-    end
+      first  = complete[index - 1]
+      second = complete[index]
 
-    nonadjacent_pairs = pairs.select do |first, second|
-      @versions.index(second) - @versions.index(first) > 1
-    end
+      first_index  = @versions.index(first)
+      second_index = @versions.index(second)
 
-    nonadjacent_pairs.sort_by do |first, second|
-      0 - (second.total_runtime - first.total_runtime).abs
+      distance = second_index - first_index
+
+      [first, second, distance] unless distance == 1
+    end.compact
+
+    pairs.sort_by do |first, second, distance|
+      time_diff = second.total_runtime - first.total_runtime
+      0 - distance/5 - time_diff.abs
     end.first
   end
 
