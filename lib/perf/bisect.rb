@@ -37,11 +37,21 @@ class Perf::Bisect
     end
   end
 
-  def run(first, last)
+  def run(params)
+    first = params[:first]
+    last  = params[:last]
+
     Dir.chdir(WORK_TREE)
     get_versions(first, last)
 
-    [@versions.first, @versions.last].each { |v| v.run unless v.complete? }
+    interesting = []
+    if int_shas = params[:interesting]
+      interesting = @versions.select do |v|
+        int_shas.any? { |sha| v.sha.start_with?(sha) }
+      end
+    end
+
+    [@versions.first, @versions.last, *interesting].each { |v| v.run unless v.complete? }
 
     while next_b = next_bisect do
       first, second = next_b
