@@ -78,6 +78,7 @@ class Perf::Version
       patch_rakefile
       patch_migrations
       patch_plugins
+      patch_code
 
       sh 'rsync', '-rt', COPY_TREE + '/', './'
 
@@ -165,6 +166,20 @@ class Perf::Version
       line
     end
     File.open(file, 'w') { |fh| fh.puts init }
+  end
+
+  def patch_code
+    patch_code_qbms
+  end
+
+  def patch_code_qbms
+    bad = [
+      '18fab0d53d047a8a8d74cd71197b1360cdf602d5',
+      'f34239effe43bb44ba161190c26a5d846659bd43',
+      '681503b0a8b8fe6140868c22333ec55a9a3a0522',
+      '72f2a49857800242afc886286c355169115d65c1'
+    ]
+    sh %w{git cherry-pick fdb603d39ad5a1893debf95bd72a6f91c5542422} if bad.include?(@sha)
   end
 
   def get_timings_report_keys
