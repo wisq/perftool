@@ -13,6 +13,10 @@ class Perf::Version
     @sha   = sha
   end
 
+  def inspect
+    "<#{self.class}:#{@sha}>"
+  end
+
   def process_spec_report(report)
     @spec_report = report
     @redis.set(spec_report_key, report.to_yaml)
