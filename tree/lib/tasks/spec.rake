@@ -3,10 +3,13 @@ namespace :spec do
     dir = Dir.getwd
 
     data = {}
-    %w(spec:preload test:units test:functionals test:api test:api:json test:integration).each do |task|
+    %w(spec:preload test:units test:functionals test:api:json test:api:xml test:integration).each do |task|
+      run_task = task
+      run_task = 'test:api' if task == 'test:api:xml' && Rake::Task.tasks.find { |t| t.name == task }.nil?
+
       start = Time.now
       pass = begin
-        Rake::Task[task].invoke
+        Rake::Task[run_task].invoke
         true
       rescue => e
         false
