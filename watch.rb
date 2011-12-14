@@ -9,7 +9,7 @@ class PerfWatch
   def initialize
     @redis = Redis.new
     @bisect = Perf::Bisect.new
-    @bisect.get_versions('fdfac297cdcbeb0323542bc387c93224a432c941', '6606aa80ec7a81085bc062655f239699dd24f1ff')
+    @bisect.get_versions('fdfac297cdcbeb0323542bc387c93224a432c941', 'master')
   end
 
   def run
