@@ -24,6 +24,13 @@ class PerfWatch
         sleep(10)
         new_reports = current_reports
         if new_reports.count != old_reports.count
+          gone = old_reports - new_reports
+          gone.each do |sha|
+            puts "Vanished: #{sha}"
+            @bisect.versions.find { |v| v.sha == sha }.reset
+            ready = true
+          end
+
           highlight = new_reports - old_reports
           highlight.each do |sha|
             puts "Just finished: #{sha}"

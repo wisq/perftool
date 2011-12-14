@@ -237,4 +237,9 @@ class Perf::Version
       instance_variable_set(var, nil) unless [:@redis, :@sha].include?(var)
     end
   end
+
+  def delete
+    @redis.del(spec_report_key)
+    @redis.del(timings_report_key)
+  end
 end
