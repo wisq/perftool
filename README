@@ -1,0 +1,3 @@
+This project was designed to test multiple versions of our own internal project and hunt down any changes (positive or negative) in overall test suite speed.
+
+It could probably be adapted for other projects, but it remains project-specific at this time, with lots of hardcoded hacks to make various versions work correctly.
