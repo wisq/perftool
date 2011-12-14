@@ -81,7 +81,7 @@ class Perf::Version
   def run
     Dir.chdir(WORK_TREE) do
       sh %w{git reset --hard}
-      sh %w{git clean -f -d -e tmp}
+      sh %w{git clean -f -x -d -e tmp}
       sh 'git', 'checkout', @sha
       patch_gemfile
       patch_rakefile
