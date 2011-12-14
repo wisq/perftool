@@ -118,7 +118,10 @@ class Perf::Version
       case line
       when /^gem .activemerchant.,/
         line.sub!('d8c4f61', '202bdfc')
+        line.sub!('eb82a74', '3f24e66')
         line.sub!('Soleone', 'Shopify') if line =~ /:tag => /
+      when /^gem .active_shipping.,/
+        line.sub!(":branch => 'usps-hotfix'", ":ref => 'cca7e73'")
       when /^gem .liquid.,/
         line.sub!('b890674', '4819eb1')
       end
