@@ -11,7 +11,10 @@ namespace :spec do
       pass = begin
         Rake::Task[run_task].invoke
         true
-      rescue => e
+      rescue StandardError => e
+        false
+      rescue Exception => e
+        raise e unless task == 'spec:preload'
         false
       end
       duration = Time.now - start

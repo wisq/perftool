@@ -32,7 +32,7 @@ class Perf::Version
       part = YAML.load(@redis.get(key))
       report.deep_merge(part)
     end
-    raise 'No timings report' if report.empty?
+    report[:empty] = {} if report.empty?
     report
   end
 
